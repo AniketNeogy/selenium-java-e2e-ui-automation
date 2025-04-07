@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="SauceDemo E2E Test Suite" parallel="methods" thread-count="3">
+    <listeners>
+        <listener class-name="com.test.automation.listeners.TestListener"/>
+        <listener class-name="com.test.automation.listeners.AnnotationTransformer"/>
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+    
+    <test name="Login Tests">
+        <classes>
+            <class name="com.test.automation.tests.LoginTest"/>
+        </classes>
+    </test>
+    
+    <test name="Inventory Tests">
+        <classes>
+            <class name="com.test.automation.tests.InventoryTest"/>
+        </classes>
+    </test>
+    
+    <test name="Cart Tests">
+        <classes>
+            <class name="com.test.automation.tests.CartTest"/>
+        </classes>
+    </test>
+</suite> 
