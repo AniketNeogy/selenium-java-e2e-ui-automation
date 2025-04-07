@@ -1,0 +1,113 @@
+name: Selenium Grid Tests
+
+on:
+  workflow_dispatch:  # Only runs on manual trigger
+    inputs:
+      test-class:
+        description: 'Test class to run (e.g., LoginTest)'
+        required: true
+        default: 'LoginTest'
+      browser:
+        description: 'Browser to test with (chrome/firefox)'
+        required: true
+        default: 'chrome'
+        type: choice
+        options:
+          - chrome
+          - firefox
+          - both
+
+jobs:
+  grid-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      selenium-hub:
+        image: selenium/hub:4.16.1-20240108
+        ports:
+          - 4442:4442
+          - 4443:4443
+          - 4444:4444
+      chrome:
+        image: selenium/node-chrome:4.16.1-20240108
+        shm_size: 2gb
+        depends_on:
+          - selenium-hub
+        environment:
+          SE_EVENT_BUS_HOST: selenium-hub
+          SE_EVENT_BUS_PUBLISH_PORT: 4442
+          SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
+      firefox:
+        image: selenium/node-firefox:4.16.1-20240108
+        shm_size: 2gb
+        depends_on:
+          - selenium-hub
+        environment:
+          SE_EVENT_BUS_HOST: selenium-hub
+          SE_EVENT_BUS_PUBLISH_PORT: 4442
+          SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build with Maven
+      run: mvn clean install -DskipTests
+      
+    - name: Wait for Grid to be ready
+      run: |
+        echo "Waiting for Selenium Grid to be ready..."
+        while ! curl -sSL "http://selenium-hub:4444/wd/hub/status" 2>&1 \
+          | grep "\"ready\": true" >/dev/null; do
+          echo 'Waiting for the Grid'
+          sleep 1
+        done
+        echo "Grid is ready!"
+      
+    - name: Run Tests on Chrome
+      if: ${{ inputs.browser == 'chrome' || inputs.browser == 'both' }}
+      run: mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=chrome" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
+      continue-on-error: true
+      
+    - name: Run Tests on Firefox
+      if: ${{ inputs.browser == 'firefox' || inputs.browser == 'both' }}
+      run: mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=firefox" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
+      continue-on-error: true
+      
+    - name: Upload Extent Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: grid-extent-report
+        path: test-output/extent-reports/
+        if-no-files-found: error
+        retention-days: 5
+        
+    - name: Upload Allure Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: grid-allure-results
+        path: test-output/allure-results/
+        if-no-files-found: error
+        retention-days: 5
+
+    - name: Add Report Links to Job Summary
+      if: always()
+      run: |
+        echo "### Grid Test Reports" >> $GITHUB_STEP_SUMMARY
+        echo "📊 [Download Grid Extent Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "📜 [Download Grid Allure Results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Grid test reports have been uploaded as build artifacts." >> $GITHUB_STEP_SUMMARY 
