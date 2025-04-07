@@ -23,17 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     services:
       selenium-hub:
-        image: selenium/hub:4.16.1-20240108
+        image: selenium/hub:4.16.1
         ports:
           - 4444:4444
       chrome:
-        image: selenium/node-chrome:4.16.1-20240108
+        image: selenium/node-chrome:4.16.1
         env:
           SE_EVENT_BUS_HOST: selenium-hub
           SE_EVENT_BUS_PUBLISH_PORT: 4442
           SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
       firefox:
-        image: selenium/node-firefox:4.16.1-20240108
+        image: selenium/node-firefox:4.16.1
         env:
           SE_EVENT_BUS_HOST: selenium-hub
           SE_EVENT_BUS_PUBLISH_PORT: 4442
@@ -63,7 +63,7 @@ jobs:
       - name: Run Tests on Firefox
         if: ${{ inputs.browser == 'firefox' || inputs.browser == 'both' }}
         run: |
-          mvn test "-Dtest=${{ inputs.browser }}" "-Dbrowser=firefox" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
+          mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=firefox" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
         env:
           TEST_ENV: grid
 
