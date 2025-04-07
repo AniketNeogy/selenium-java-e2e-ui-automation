@@ -1,0 +1,38 @@
+# docker-compose.yml
+version: "3.8"
+services:
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    ports:
+      - "4442:4442" # Event Bus
+      - "4443:4443" # New Session Queue
+      - "4444:4444" # Hub / WebDriver endpoint
+
+  chrome-node:
+    image: selenium/node-chrome:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      # Optional: Add VNC for debugging
+      - SE_NODE_MAX_SESSIONS=5 # Adjust based on your machine resources
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+    ports:
+      - "5900:5900" # Optional: VNC port (if VNC image is used)
+    shm_size: '2g'
+
+# Optional: Add more nodes (e.g., Firefox)
+  firefox-node:
+    image: selenium/node-firefox:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5 # Adjust based on your machine resources
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+    shm_size: '2g' 

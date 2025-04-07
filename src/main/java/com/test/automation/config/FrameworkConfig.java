@@ -1,6 +1,8 @@
 package com.test.automation.config;
 
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +28,8 @@ public class FrameworkConfig {
     
     private static FrameworkConfig instance;
     
+    private static final Logger log = LoggerFactory.getLogger(FrameworkConfig.class);
+    
     private FrameworkConfig() {
         loadConfig();
     }
@@ -45,6 +49,7 @@ public class FrameworkConfig {
             }
             properties.load(input);
             
+            // First read from properties file
             baseUrl = properties.getProperty("base.url", "https://www.example.com");
             browser = properties.getProperty("browser", "chrome");
             implicitWaitSeconds = Integer.parseInt(properties.getProperty("implicit.wait.seconds", "10"));
@@ -55,6 +60,22 @@ public class FrameworkConfig {
             gridUrl = properties.getProperty("grid.url", "http://localhost:4444/wd/hub");
             useGrid = Boolean.parseBoolean(properties.getProperty("use.grid", "false"));
             screenshotDir = properties.getProperty("screenshot.dir", System.getProperty("user.dir") + "/screenshots");
+            
+            // Then override with system properties if provided (adding these lines)
+            // This ensures command-line arguments take priority
+            browser = System.getProperty("browser", browser);
+            headless = Boolean.parseBoolean(System.getProperty("headless", String.valueOf(headless)));
+            baseUrl = System.getProperty("base.url", baseUrl);
+            useGrid = Boolean.parseBoolean(System.getProperty("use.grid", String.valueOf(useGrid)));
+            gridUrl = System.getProperty("grid.url", gridUrl);
+            
+            // Add debug logging to print final values
+            log.info("==== Framework Configuration ====");
+            log.info("browser: {}", browser);
+            log.info("useGrid: {}", useGrid);
+            log.info("gridUrl: {}", gridUrl);
+            log.info("headless: {}", headless);
+            log.info("==============================");
             
         } catch (IOException e) {
             System.err.println("Failed to load config file: " + e.getMessage());

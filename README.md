@@ -17,7 +17,7 @@ A robust end-to-end UI testing framework for automating web applications using S
   - [Local Execution](#local-execution)
   - [Selenium Grid Execution](#selenium-grid-execution)
 - [Viewing Reports](#viewing-reports)
-- [GitHub Actions CI/CD](#github-actions-cicd)
+- [Selenium Grid Setup and Usage](#selenium-grid-setup-and-usage)
 - [Getting Started & Adding New Tests](#getting-started--adding-new-tests)
 - [Best Practices Used](#best-practices-used)
 - [Browser Support](#browser-support)
@@ -215,7 +215,7 @@ This framework supports running tests remotely on a Selenium Grid for parallel e
 **Configuration:**
    1.  Edit `src/main/resources/config.properties`.
    2.  Set `use.grid=true`.
-   3.  Verify or update `grid.url` to match your Selenium Grid Hub address (e.g., `http://your-grid-hub-ip:4444/wd/hub`).
+   3.  Verify or update `grid.url` to match your Selenium Grid Hub address (e.g., `http://your-grid-hub-ip:4444`).
 
 **Running Tests on Grid:**
    Once `use.grid=true` is set in `config.properties`, use the standard Maven commands. The `DriverFactory` will detect `use.grid=true` and automatically create `RemoteWebDriver` instances pointing to the specified `grid.url`.
@@ -231,106 +231,130 @@ This framework supports running tests remotely on a Selenium Grid for parallel e
 
 ## Viewing Reports
 
-After test execution, reports are generated:
+After test execution, you can find the following reports in the `test-output` directory:
 
-1.  **Extent Reports**:
-    -   Navigate to the `test-output/extent-reports/` directory.
-    -   Open the HTML file (e.g., `TestReport_YYYY-MM-DD_HH-MM-SS.html`) in a web browser.
+1. **Extent Reports**: Located in `test-output/extent-reports/`
+   - Open the HTML file in a web browser
+   - Provides detailed test execution information, screenshots, and logs
 
-2.  **Allure Reports**:
-    -   Ensure you have the [Allure Commandline](https://docs.qameta.io/allure/#_installing_a_commandline) installed OR the Allure Maven plugin configured in `pom.xml`.
-    -   From the project root directory, run **one** of the following commands:
-        ```bash
-        # Using Allure command line tool:
-        allure serve test-output/allure-results/
+   <div align="left">
+    <p><strong>Extent Reports</strong></p>
+    <img src="artefacts/ExtentReport.png" width="500px" alt="Dashboard View" />
+    </div>
 
-        # OR using Allure Maven plugin (configured):
-        mvn allure:serve
-        ```
-    -   This will generate the report and open it in your default web browser.
+2. **Allure Reports**: Located in `test-output/allure-results/`
+   - Generate report using: `mvn allure:report`
+   - View report using: `mvn allure:serve`
+   - or alternative do `allure serve test-output/allure-results/`
+   - Provides comprehensive test execution details and trends
 
-## GitHub Actions CI/CD
+   <div align="left">
+    <p><strong>Allure Reports</strong></p>
+    <img src="artefacts/AllureReport.png" width="500px" alt="Dashboard View" />
+    </div>
 
-This project includes a basic Continuous Integration (CI) workflow using [GitHub Actions](https://docs.github.com/en/actions) to automatically build and run the Selenium tests whenever code is pushed or a pull request is created. This helps ensure that code changes don't break existing functionality.
+## Selenium Grid Setup and Usage
 
-### Workflow File Location
+This framework supports running tests on a Selenium Grid, allowing for distributed test execution across multiple browsers and machines.
 
-The workflow definition resides in a YAML file within your repository:
-```
-.github/workflows/ci-tests.yml
-```
-GitHub automatically detects workflow files placed in this specific directory structure.
+### Local Grid Setup
 
-### Workflow Triggers
+1. **Prerequisites**:
+   - Docker installed on your machine
+   - Docker Compose installed
 
-The `on:` section in the `ci-tests.yml` file defines when the workflow should automatically run:
-```yaml
-on:
-  push:
-    branches: [ main, master ] # Runs on push to main or master branch
-  pull_request:
-    branches: [ main, master ] # Runs on PRs targeting main or master
-```
-*(You can customize the `branches` array if your primary development branch has a different name, e.g., `develop`)*.
+2. **Start the Grid**:
+   ```bash
+   # Navigate to the project root directory
+   cd selenium-java-e2e-ui-automation
+   
+   # Start the Grid using Docker Compose
+   docker-compose up -d
+   ```
 
-### Understanding the Workflow Job (`build_and_test`)
+<div align="left">
+    <p><strong>Grid View</strong></p>
+    <img src="artefacts/GridSetup.png" width="500px" alt="Dashboard View" />
+</div>
 
-The workflow contains a single job named `build_and_test`. A job is a set of steps that execute on the same runner (virtual machine).
+3. **Verify Grid Status**:
+   - Open your browser and navigate to: `http://localhost:4444/ui`
+   - You should see the Grid console showing available nodes (Chrome and Firefox)
 
-- **`runs-on: ubuntu-latest`**: Specifies that the job will run on the latest available version of an Ubuntu Linux virtual machine provided by GitHub.
+### Running Tests on Grid
 
-- **`steps:`**: Defines the sequence of tasks the job will execute.
+1. **Configuration**:
+   - Set `use.grid=true` in `src/main/resources/config.properties`
+   - Set `grid.url=http://localhost:4444` in the same file
+   - Alternatively, override these settings via command line
 
-    1.  **`Checkout repository`**: Uses a pre-built action (`actions/checkout@v4`) to download the source code of your repository onto the runner, making it available for subsequent steps.
-    2.  **`Set up JDK 11`**: Uses the `actions/setup-java@v4` action to install and configure Java Development Kit version 11 (`java-version: '11'`) using the Temurin distribution (`distribution: 'temurin'`). This ensures the correct Java environment for compiling and running the tests.
-    3.  **`Cache Maven packages`**: Employs the `actions/cache@v4` action. It saves the contents of the local Maven repository (`~/.m2/repository`) after dependencies are downloaded for the first time. On subsequent runs, if the `pom.xml` hasn't changed significantly, it restores this cache, drastically reducing the time needed to download dependencies.
-    4.  **`Install Google Chrome`**: Executes Linux shell commands (`sudo apt-get update`, `sudo apt-get install -y google-chrome-stable`) to install the Chrome browser on the runner. **This is crucial** because Selenium WebDriver, even when running in headless mode, needs the actual browser executable to be installed to interact with it.
-    5.  **`Run Tests with Maven (Headless Default)`**: Executes the core testing command `mvn clean test`.
-        - `clean`: Removes previous build artifacts (the `target/` directory).
-        - `test`: Compiles the code and runs the tests defined in `testng.xml` using the Surefire plugin.
-        - **Headless Mode:** Since the `-DrunMode` property is not set here, the `DriverFactory` will use its default behavior, configuring Chrome to run in **headless** mode.
-        - If any test fails, Maven will exit with a non-zero code, causing this step (and the overall workflow run) to be marked as failed.
-    6.  **`Upload Extent Report Artifact`**: Uses `actions/upload-artifact@v4` to package and save the generated Extent report HTML file(s).
-        - `if: always()`: This condition ensures this step runs even if the previous `mvn clean test` step failed. This is important so you can download and view the report to see the failures.
-        - **Artifacts** are files produced by a workflow run that you can download later.
-        - `name: extent-report`: The name given to the downloadable artifact.
-        - `path: test-output/extent-reports/*.html`: Specifies which file(s) to include in the artifact.
-    7.  **`Upload Allure Results Artifact`**: Similarly uploads the raw Allure result files.
-        - `if: always()`: Runs even if tests fail.
-        - `name: allure-results`: The artifact name.
-        - `path: target/allure-results`: Specifies the directory containing the raw Allure JSON/XML files to upload (note this uses `target/` as configured in `pom.xml`).
-        - `retention-days: 7`: (Optional) Tells GitHub to automatically delete this artifact after 7 days.
+2. **Simple Test Execution**:
+   ```bash
+   # Run tests on Chrome using Grid (default configuration)
+   mvn clean test "-Dtest=LoginTest" "-Dbrowser=chrome"
+   
+   # Run tests on Firefox using Grid
+   mvn clean test "-Dtest=LoginTest" "-Dbrowser=firefox"
+   ```
 
-### Viewing Workflow Runs and Artifacts in GitHub
+3. **Optional: Override Grid Configuration**:
+   If you need to override the default Grid settings, you can use command line parameters:
+   ```bash
+   # Example: Run tests against a different Grid URL
+   mvn clean test "-Dtest=LoginTest" "-Dbrowser=chrome" "-Dgrid.url=http://different-grid:4444"
+   
+   # Example: Switch to local execution temporarily
+   mvn clean test "-Dtest=LoginTest" "-Dbrowser=chrome" "-Duse.grid=false"
+   ```
 
-1.  Go to your repository page on GitHub.
-2.  Click on the "Actions" tab.
-3.  You'll see a list of workflow runs. Click on the run you're interested in (e.g., the one triggered by your latest push).
-4.  You can see the status (`Success`, `Failure`, `In progress`) and click on the `build_and_test` job to view the detailed logs for each step.
-5.  On the **Summary** page for the completed run, scroll down to the "Artifacts" section.
-6.  Click on `extent-report` or `allure-results` to download the corresponding zip file.
+4. **Grid Configuration Options**:
+   - `use.grid`: Set to `true` to use Grid, `false` for local execution (default: true)
+   - `grid.url`: URL of the Grid Hub (default: `http://localhost:4444`)
+   - `browser`: Browser to use (`chrome` or `firefox`)
 
-### Viewing the Allure Report from CI Artifacts
+5. **Monitoring Grid Execution**:
+   - Watch the Grid console at `http://localhost:4444/ui` during test execution
+   - View live sessions and node status
+   - Monitor test execution in real-time
 
-The `allure-results` artifact contains the raw data, not the HTML report itself. To view the interactive Allure report from a CI run:
-1.  Download the `allure-results.zip` artifact from the GitHub Actions run summary page.
-2.  Unzip the downloaded file (this will create a folder, likely named `allure-results`, containing the JSON and TXT files).
-3.  Open your local terminal or command prompt.
-4.  Navigate to the directory where you unzipped the files.
-5.  Run the Allure command-line tool (make sure it's installed):
-    ```bash
-    # If you unzipped into a folder named 'allure-results'
-    allure serve allure-results/
-    ```
-    (Replace `allure-results/` with the actual name of the unzipped folder if different).
-6.  This command generates the HTML report on-the-fly and opens it in your default web browser.
+<div align="left">
+    <p><strong>Grid Run - 1 concurrent session</strong></p>
+    <img src="artefacts/GridRun2.png" width="500px" alt="Dashboard View" />
+</div>
 
-### Customizing the Workflow
+<div align="left">
+    <p><strong>Grid Run - 2 concurrent session</strong></p>
+    <img src="artefacts/GridRun1.png" width="500px" alt="Dashboard View" />
+</div>
 
--   **Branch Names:** Modify the `branches` under `on.push` and `on.pull_request` in `ci-tests.yml` if you use different primary branch names (e.g., `develop`).
--   **Java Version:** Change the `java-version` in the "Set up JDK" step if needed.
--   **Test Command:** Modify the `run: mvn clean test` step if you need to pass different parameters, profiles (`-P`), or specific tests (`-Dtest=...`).
--   **Browser:** To run tests against Firefox headless in CI, you would install Firefox (`sudo apt-get install firefox`) and likely modify the `browser` property in `config.properties` (as the CI run doesn't use `-Dbrowser`).
+<div align="left">
+    <p><strong>Grid Run - 4 concurrent session</strong></p>
+    <img src="artefacts/GridRun3.png" width="500px" alt="Dashboard View" />
+</div>
+
+### Grid Architecture
+
+The framework uses a Hub-Node architecture:
+- **Hub**: Central point that receives test requests
+- **Nodes**: Browser instances that execute the tests
+- **Docker Setup**: Uses separate containers for Hub, Chrome Node, and Firefox Node
+
+### Troubleshooting Grid Issues
+
+1. **Grid Not Starting**:
+   - Check Docker service status
+   - Verify port 4444 is not in use
+   - Check Docker logs: `docker-compose logs`
+
+2. **Connection Issues**:
+   - Verify Grid URL is correct
+   - Check if Grid Hub is accessible
+   - Ensure nodes are registered with the Hub
+
+3. **Browser Issues**:
+   - Check node logs for browser startup problems
+   - Verify browser versions are compatible
+   - Check Docker container resource limits
 
 ## Getting Started & Adding New Tests
 
