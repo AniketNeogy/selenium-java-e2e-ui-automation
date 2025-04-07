@@ -53,17 +53,27 @@ jobs:
       - name: Build with Maven
         run: mvn clean compile -DskipTests
 
+      - name: Wait for Grid to be ready
+        run: |
+          echo "Waiting for Selenium Grid to be ready..."
+          while ! curl -sSL "http://localhost:4444/wd/hub/status" 2>&1 \
+            | grep "\"ready\": true" >/dev/null; do
+            echo 'Waiting for the Grid'
+            sleep 1
+          done
+          echo "Grid is ready!"
+
       - name: Run Tests on Chrome
         if: ${{ inputs.browser == 'chrome' || inputs.browser == 'both' }}
         run: |
-          mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=chrome" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
+          mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=chrome" "-Duse.grid=true" "-Dgrid.url=http://localhost:4444"
         env:
           TEST_ENV: grid
 
       - name: Run Tests on Firefox
         if: ${{ inputs.browser == 'firefox' || inputs.browser == 'both' }}
         run: |
-          mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=firefox" "-Duse.grid=true" "-Dgrid.url=http://selenium-hub:4444"
+          mvn test "-Dtest=${{ inputs.test-class }}" "-Dbrowser=firefox" "-Duse.grid=true" "-Dgrid.url=http://localhost:4444"
         env:
           TEST_ENV: grid
 
