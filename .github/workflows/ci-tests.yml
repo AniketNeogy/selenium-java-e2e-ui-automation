@@ -52,4 +52,14 @@ jobs:
       with:
         name: allure-results
         path: target/allure-results # Upload the raw Allure results
-        retention-days: 7 # Keep results for 7 days (optional) 
+        retention-days: 7 # Keep results for 7 days (optional)
+
+    # New Step: Add link/note to Job Summary
+    - name: Add Report Links to Job Summary
+      if: always()
+      run: |
+        echo "### Test Reports" >> $GITHUB_STEP_SUMMARY
+        echo "📊 [Download Extent Report Artifact](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "📜 [Download Allure Results Artifact](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY # Add a blank line for spacing
+        echo "Extent Report and Allure Results have been uploaded as build artifacts." >> $GITHUB_STEP_SUMMARY 
