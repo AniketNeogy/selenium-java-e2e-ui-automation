@@ -356,6 +356,77 @@ The framework uses a Hub-Node architecture:
    - Verify browser versions are compatible
    - Check Docker container resource limits
 
+## GitHub Actions Implementation
+
+This project includes two GitHub Actions workflows for automated testing:
+
+### 1. Continuous Integration (CI) Tests
+Located in `.github/workflows/ci-tests.yml`:
+- **Trigger**: Runs automatically on push and pull requests
+- **Environment**: Uses local Chrome browser in headless mode
+- **Steps**:
+  - Set up Java 11
+  - Install Chrome browser
+  - Run all tests
+  - Upload Extent and Allure reports
+- **Reports**: Available as workflow artifacts
+
+### 2. Selenium Grid Tests
+Located in `.github/workflows/grid-tests.yml`:
+- **Trigger**: Manual execution only (workflow_dispatch)
+- **Environment**: Selenium Grid with Chrome and Firefox nodes
+- **Configuration**:
+  - Test class selection
+  - Browser selection (Chrome, Firefox, or both)
+- **Steps**:
+  - Set up Selenium Grid
+  - Run tests on selected browser(s)
+  - Upload Grid-specific reports
+- **Reports**: Available as workflow artifacts with "grid-" prefix
+
+### Running GitHub Actions Workflows
+
+1. **CI Tests**:
+   - Automatically runs on push/PR
+   - No manual intervention needed
+   - View results in Actions tab
+
+2. **Grid Tests**:
+   - Manual trigger required
+   - Steps to run:
+     1. Go to Actions tab
+     2. Select "Selenium Grid Tests"
+     3. Click "Run workflow"
+     4. Select test class and browser
+     5. Click "Run workflow"
+
+### Viewing Test Results
+
+1. **CI Test Results**:
+   - Navigate to Actions tab
+   - Select the latest CI run
+   - Download artifacts:
+     - `extent-report`: HTML test report
+     - `allure-results`: Allure test data
+
+2. **Grid Test Results**:
+   - Navigate to Actions tab
+   - Select the latest Grid run
+   - Download artifacts:
+     - `grid-extent-report`: Grid-specific HTML report
+     - `grid-allure-results`: Grid-specific Allure data
+
+### Workflow Artifacts
+
+Both workflows generate and upload:
+- Extent Reports (HTML format)
+- Allure Results (for detailed analysis)
+- Job summaries with direct links to artifacts
+
+Artifacts are retained for:
+- CI Tests: 7 days
+- Grid Tests: 5 days
+
 ## Getting Started & Adding New Tests
 
 ### Installation & Setup
